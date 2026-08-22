@@ -1,0 +1,18 @@
+export const getPageContent = async (tabId) => {
+  return new Promise((resolve, reject) => {
+    chrome.tabs.sendMessage(
+      tabId,
+      {
+        type: "GET_PAGE_CONTENT"
+      },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          reject(chrome.runtime.lastError);
+          return;
+        }
+
+        resolve(response);
+      }
+    );
+  });
+};
