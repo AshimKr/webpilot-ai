@@ -11,11 +11,11 @@ export const sendAIRequest = async (request) => {
     body: JSON.stringify(request)
   });
 
-  if (!response.ok) {
-    throw new Error("AI request failed.");
-  }
-
   const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "AI request failed.");
+  }
 
   return data;
 };

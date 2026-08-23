@@ -130,18 +130,60 @@ function App() {
       return;
     }
 
-    setAskingAI(true);
-
     try {
+      setError("");
+      setAIResponse("");
+      setActiveAction(action);
+      setAskingAI(true);
+
+      let pageData = {
+        title: currentTab.title || "",
+        url: currentTab.url || "",
+        content: pageContent
+      };
+
+      if (!pageContent) {
+        setReadingPage(true);
+
+        const response = await loadPageContext();
+
+        pageData = {
+          title: response.title,
+          url: response.url,
+          content: response.content
+        };
+
+        setReadingPage(false);
+      }
+
+      const request = buildAIRequest({
+        action,
+        page: pageData,
+        selectedText,
+        userQuestion
+      });
+
+      setAIRequest(request);
+
+      console.log("Sending AI request:", request);
+
       const response = await sendAIRequest(request);
+
+      console.log("AI response:", response);
 
       if (response.success) {
         setAIResponse(response.result);
       }
+
     } catch (error) {
-      console.error(error);
-      setError("Unable to get AI response.");
+      console.error("AI action failed:", error);
+
+      setError(
+        error.message || "Unable to get AI response."
+      );
+
     } finally {
+      setReadingPage(false);
       setAskingAI(false);
     }
   };
@@ -152,12 +194,20 @@ function App() {
       return;
     }
 
+    if (!currentTab?.id) {
+      setError("No active webpage found.");
+      return;
+    }
+
     try {
       setError("");
+      setAIResponse("");
+      setActiveAction(AI_ACTIONS.ASK);
+      setAskingAI(true);
 
       let pageData = {
-        title: currentTab?.title || "",
-        url: currentTab?.url || "",
+        title: currentTab.title || "",
+        url: currentTab.url || "",
         content: pageContent
       };
 
@@ -182,19 +232,24 @@ function App() {
         userQuestion
       });
 
-      console.log("AI Request:", request);
-
-      setActiveAction(AI_ACTIONS.ASK);
       setAIRequest(request);
+
+      const response = await sendAIRequest(request);
+
+      if (response.success) {
+        setAIResponse(response.result);
+      }
 
     } catch (error) {
       console.error("Ask AI failed:", error);
 
       setError(
-        error.message || "Unable to prepare AI request."
+        error.message || "Unable to get AI response."
       );
 
+    } finally {
       setReadingPage(false);
+      setAskingAI(false);
     }
   };
 
@@ -386,6 +441,41 @@ function App() {
         </div>
 
       </div>
+
+      {askingAI && (
+        <div className="mt-5 rounded-xl bg-slate-900 border border-slate-800 p-4">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse" />
+
+            <p className="text-sm text-slate-400">
+              WebPilot is thinking...
+            </p>
+          </div>
+        </div>
+      )}
+
+      {aiResponse && !askingAI && (
+        <div className="mt-5 rounded-xl bg-slate-900 border border-slate-800 p-4">
+
+          <div className="flex justify-between items-center mb-3">
+            <p className="font-medium">
+              AI Response
+            </p>
+
+            <button
+              onClick={() => setAIResponse("")}
+              className="text-xs text-slate-500 hover:text-white"
+            >
+              Clear
+            </button>
+          </div>
+
+          <div className="text-sm text-slate-300 whitespace-pre-wrap leading-6">
+            {aiResponse}
+          </div>
+
+        </div>
+      )}
 
       {aiRequest && (
         <div className="mt-5">
