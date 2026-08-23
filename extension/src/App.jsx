@@ -298,21 +298,22 @@ function App() {
       </div>
 
       {/* Read Page */}
-      <button
-        onClick={handleReadPage}
-        disabled={readingPage}
-        className="w-full mt-4 rounded-lg bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 py-2.5 font-medium transition"
-      >
-        {readingPage ? "Reading Page..." : "Read Current Page"}
-      </button>
+      <div className="flex gap-2 mt-3">
+          <button
+            onClick={handleReadPage}
+            disabled={readingPage}
+            className="flex-1 rounded-lg bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 py-2 text-sm font-medium transition"
+          >
+            {readingPage ? "Reading..." : "Read Page"}
+          </button>
 
-      {/* Selected Text */}
-      <button
-        onClick={handleGetSelectedText}
-        className="w-full mt-2 rounded-lg bg-slate-800 hover:bg-slate-700 py-2.5 text-sm transition"
-      >
-        Get Selected Text
-      </button>
+          <button
+            onClick={handleGetSelectedText}
+            className="flex-1 rounded-lg bg-slate-800 hover:bg-slate-700 py-2 text-sm transition"
+          >
+            Get Selection
+          </button>
+        </div>
 
       {/* Error */}
       {error && (
