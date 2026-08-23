@@ -27,6 +27,13 @@ app.get("/", (req, res) => {
   });
 });
 
+app.get("/health", (req, res) => {
+  res.json({
+    success: true,
+    status: "healthy"
+  });
+});
+
 app.use("/api/ai", aiRoutes);
 
 app.listen(PORT, () => {
