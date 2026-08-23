@@ -13,7 +13,8 @@
   ],
 
   "host_permissions": [
-    "<all_urls>"
+    "<all_urls>",
+    "http://localhost:5000/*"
   ],
 
   "content_scripts": [

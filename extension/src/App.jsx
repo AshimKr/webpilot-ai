@@ -1,9 +1,19 @@
 import { useEffect, useState } from "react";
+
 import { getActiveTab } from "./utils/chromeTabs";
+import { sendAIRequest } from "./services/aiApi";
+
 import {
   getPageContent,
   getSelectedText
 } from "./utils/pageContent";
+
+import { buildAIRequest } from "./utils/aiRequest";
+
+import {
+  AI_ACTIONS,
+  ACTION_LABELS
+} from "./constants/aiActions";
 
 function App() {
   const [currentTab, setCurrentTab] = useState(null);
@@ -13,9 +23,17 @@ function App() {
 
   const [loading, setLoading] = useState(true);
   const [readingPage, setReadingPage] = useState(false);
+
   const [error, setError] = useState("");
 
   const [activeAction, setActiveAction] = useState(null);
+
+  const [aiRequest, setAIRequest] = useState(null);
+
+  const [userQuestion, setUserQuestion] = useState("");
+
+  const [aiResponse, setAIResponse] = useState("");
+  const [askingAI, setAskingAI] = useState(false);
 
   useEffect(() => {
     const loadCurrentTab = async () => {
@@ -33,6 +51,26 @@ function App() {
 
     loadCurrentTab();
   }, []);
+
+  const loadPageContext = async () => {
+    if (!currentTab?.id) {
+      throw new Error("No active tab found.");
+    }
+
+    const response = await getPageContent(currentTab.id);
+
+    if (!response?.success) {
+      throw new Error("Unable to read webpage.");
+    }
+
+    setPageContent(response.content);
+
+    if (response.selectedText) {
+      setSelectedText(response.selectedText);
+    }
+
+    return response;
+  };
 
   const handleReadPage = async () => {
     if (!currentTab?.id) {
@@ -87,11 +125,76 @@ function App() {
   };
 
   const handleAction = async (action) => {
-    setActiveAction(action);
-    setError("");
+    if (!currentTab?.id) {
+      setError("No active webpage found.");
+      return;
+    }
 
-    if (!pageContent) {
-      await handleReadPage();
+    setAskingAI(true);
+
+    try {
+      const response = await sendAIRequest(request);
+
+      if (response.success) {
+        setAIResponse(response.result);
+      }
+    } catch (error) {
+      console.error(error);
+      setError("Unable to get AI response.");
+    } finally {
+      setAskingAI(false);
+    }
+  };
+
+  const handleAskAI = async () => {
+    if (!userQuestion.trim()) {
+      setError("Please enter a question.");
+      return;
+    }
+
+    try {
+      setError("");
+
+      let pageData = {
+        title: currentTab?.title || "",
+        url: currentTab?.url || "",
+        content: pageContent
+      };
+
+      if (!pageContent) {
+        setReadingPage(true);
+
+        const response = await loadPageContext();
+
+        pageData = {
+          title: response.title,
+          url: response.url,
+          content: response.content
+        };
+
+        setReadingPage(false);
+      }
+
+      const request = buildAIRequest({
+        action: AI_ACTIONS.ASK,
+        page: pageData,
+        selectedText,
+        userQuestion
+      });
+
+      console.log("AI Request:", request);
+
+      setActiveAction(AI_ACTIONS.ASK);
+      setAIRequest(request);
+
+    } catch (error) {
+      console.error("Ask AI failed:", error);
+
+      setError(
+        error.message || "Unable to prepare AI request."
+      );
+
+      setReadingPage(false);
     }
   };
 
@@ -108,6 +211,28 @@ function App() {
           Your AI assistant for the web
         </p>
       </header>
+
+      {askingAI && (
+        <div className="mt-5 rounded-lg bg-slate-900 border border-slate-800 p-4">
+          <p className="text-sm text-slate-400">
+            WebPilot is thinking...
+          </p>
+        </div>
+      )}
+
+      {aiResponse && (
+        <div className="mt-5 rounded-lg bg-slate-900 border border-slate-800 p-4">
+
+          <p className="text-sm font-medium mb-3">
+            AI Response
+          </p>
+
+          <div className="text-sm text-slate-300 whitespace-pre-wrap leading-6">
+            {aiResponse}
+          </div>
+
+        </div>
+      )}
 
       {/* Current Page */}
       <div className="rounded-xl bg-slate-900 border border-slate-800 p-4">
@@ -231,28 +356,28 @@ function App() {
         <div className="grid grid-cols-2 gap-3">
 
           <button
-            onClick={() => handleAction("summarize")}
+            onClick={() => handleAction(AI_ACTIONS.SUMMARIZE)}
             className="rounded-lg bg-slate-800 hover:bg-slate-700 p-3 text-sm transition"
           >
             Summarize
-          </button>
+        </button>
 
           <button
-            onClick={() => handleAction("explain")}
+            onClick={() => handleAction(AI_ACTIONS.EXPLAIN)}
             className="rounded-lg bg-slate-800 hover:bg-slate-700 p-3 text-sm transition"
           >
             Explain
           </button>
 
           <button
-            onClick={() => handleAction("key-points")}
+            onClick={() => handleAction(AI_ACTIONS.KEY_POINTS)}
             className="rounded-lg bg-slate-800 hover:bg-slate-700 p-3 text-sm transition"
           >
             Key Points
           </button>
 
           <button
-            onClick={() => handleAction("rewrite")}
+            onClick={() => handleAction(AI_ACTIONS.REWRITE)}
             className="rounded-lg bg-slate-800 hover:bg-slate-700 p-3 text-sm transition"
           >
             Rewrite
@@ -261,6 +386,66 @@ function App() {
         </div>
 
       </div>
+
+      {aiRequest && (
+        <div className="mt-5">
+
+          <div className="flex justify-between items-center mb-2">
+            <p className="text-sm font-medium">
+              AI Request Preview
+            </p>
+
+            <span className="text-xs text-indigo-400">
+              {ACTION_LABELS[aiRequest.action]}
+            </span>
+          </div>
+
+          <div className="rounded-lg bg-slate-900 border border-slate-800 p-3">
+
+            <p className="text-xs text-slate-500">
+              Action
+            </p>
+
+            <p className="text-sm mt-1">
+              {aiRequest.action}
+            </p>
+
+            <p className="text-xs text-slate-500 mt-3">
+              Page
+            </p>
+
+            <p className="text-sm mt-1 truncate">
+              {aiRequest.page.title}
+            </p>
+
+            {aiRequest.selectedText && (
+              <>
+                <p className="text-xs text-slate-500 mt-3">
+                  Selected text
+                </p>
+
+                <p className="text-xs text-slate-400 mt-1 line-clamp-3">
+                  {aiRequest.selectedText}
+                </p>
+              </>
+            )}
+
+            {aiRequest.userQuestion && (
+              <>
+                <p className="text-xs text-slate-500 mt-3">
+                  Question
+                </p>
+
+                <p className="text-xs text-slate-400 mt-1">
+                  {aiRequest.userQuestion}
+                </p>
+              </>
+            )}
+
+          </div>
+
+        </div>
+      )}
 
       {/* Current Action */}
       {activeAction && (
@@ -285,11 +470,16 @@ function App() {
       <div className="mt-6">
 
         <textarea
+          value={userQuestion}
+          onChange={(event) => setUserQuestion(event.target.value)}
           placeholder="Ask anything about this page..."
           className="w-full h-24 resize-none rounded-lg bg-slate-900 border border-slate-800 p-3 text-sm outline-none focus:border-indigo-500"
         />
 
-        <button className="w-full mt-3 rounded-lg bg-white text-slate-950 py-2.5 font-medium hover:bg-slate-200 transition">
+        <button
+          onClick={handleAskAI}
+          className="w-full mt-3 rounded-lg bg-white text-slate-950 py-2.5 font-medium hover:bg-slate-200 transition"
+        >
           Ask AI
         </button>
 
