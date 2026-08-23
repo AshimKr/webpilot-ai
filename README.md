@@ -350,7 +350,7 @@ Node.js + Express
 OpenRouter
 ```
 
-**Deployed backend URL:** _TODO — add once finalized_
+**Deployed backend URL:** [https://webpilot-ai.onrender.com/](https://webpilot-ai.onrender.com/)
 
 ### Backend
 
