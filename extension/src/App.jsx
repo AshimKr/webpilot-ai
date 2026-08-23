@@ -267,27 +267,6 @@ function App() {
         </p>
       </header>
 
-      {askingAI && (
-        <div className="mt-5 rounded-lg bg-slate-900 border border-slate-800 p-4">
-          <p className="text-sm text-slate-400">
-            WebPilot is thinking...
-          </p>
-        </div>
-      )}
-
-      {aiResponse && (
-        <div className="mt-5 rounded-lg bg-slate-900 border border-slate-800 p-4">
-
-          <p className="text-sm font-medium mb-3">
-            AI Response
-          </p>
-
-          <div className="text-sm text-slate-300 whitespace-pre-wrap leading-6">
-            {aiResponse}
-          </div>
-
-        </div>
-      )}
 
       {/* Current Page */}
       <div className="rounded-xl bg-slate-900 border border-slate-800 p-4">

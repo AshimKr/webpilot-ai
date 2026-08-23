@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:5000/api/ai";
+const API_URL = "https://webpilot-ai.onrender.com/api/ai";
 
 export const sendAIRequest = async (request) => {
   const response = await fetch(API_URL, {
